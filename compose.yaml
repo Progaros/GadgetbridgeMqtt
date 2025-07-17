@@ -1,0 +1,33 @@
+services:
+  gadgetbridge-mqtt:
+    image: python:3.11-slim
+    container_name: gadgetbridge-mqtt
+    restart: unless-stopped
+    network_mode: host
+    working_dir: /app
+    volumes:
+      - /mnt/Data/Apps/*****/Gadgetbridge/Gadgetbridge.db:/data/Gadgetbridge.db:ro
+    environment:
+      - TZ=Europe/Berlin # Get from e.g. https://webbrowsertools.com/timezone/ -> Timezone info Table -> Timezone
+      - MQTT_BROKER=192.168.***.***
+      - MQTT_PORT=1883
+      - MQTT_USERNAME=*****
+      - MQTT_PASSWORD=*****
+      - GADGETBRIDGE_DB_PATH=/data/Gadgetbridge.db
+      - PYTHONUNBUFFERED=1
+      - PUBLISH_INTERVAL_SECONDS=300
+    command: >
+      sh -c "
+        apt-get update &&
+        apt-get install -y git &&
+        git clone https://git.olli.info/Oliver/GadgetbridgeMqtt.git /tmp/repo &&
+        cp /tmp/repo/main.py /app/ &&
+        cp /tmp/repo/healthcheck.py /app/ &&
+        pip install --no-cache-dir aiomqtt &&
+        python main.py
+      "
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
